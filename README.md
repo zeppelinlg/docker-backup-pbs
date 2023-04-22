@@ -23,6 +23,7 @@ docker run -it --rm \
   -e PBS_PASSWORD=<mot_de_passe_proxmox_backup> \
   -e PBS_DATASTORE=<stockage_proxmox_backup> \
   -e PBS_NAMESPACE=<namespace_proxmox_backup> \
+  -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
   docker-backup-pbs backup
 ```
