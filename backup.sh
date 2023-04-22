@@ -131,9 +131,14 @@ function backupContainer() {
 }
 
 function autoBackupDaily() {
+    TIME=${1:-"00:00"}
     while true; do
         backup
-        sleep 1d
+        ## Attend jusqu'a l'heure choisie
+        NOW=$(date +%s)
+        NEXT=$(date -d "tomorrow $TIME" +%s)
+        SLEEP=$((NEXT-NOW))
+        sleep "$SLEEP"
     done
 }
 
@@ -144,7 +149,7 @@ if [ "$1" == "backup" ]; then
     elif [ "$1" == "restoreContainer" ]; then
     restoreContainer "$2" "$3"
     elif [ "$1" == "autoBackupDaily" ]; then
-    autoBackupDaily
+    autoBackupDaily "$2"
 else
     echo "Usage: $0 backup|backupContainer|restoreContainer"
     exit 1
