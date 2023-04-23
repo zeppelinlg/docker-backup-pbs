@@ -20,14 +20,21 @@ if [ -z "$PBS_NAMESPACE" ]; then
     echo "La variable d'environnement PBS_NAMESPACE n'est pas définie"
     exit 1
 fi
+if [ -z "$LABEL_ONLY" ]; then
+    LABEL_ONLY="false"
+fi
 
 
 
 ## Fonction de backup des volumes de toutes les instances en cours d'exécution
 function backup() {
     # Récupération de la liste de tous les conteneurs en cours d'exécution
-    CONTAINERS=$(docker ps --format '{{.Names}}')
-    
+    if [ "$LABEL_ONLY" == "true" ]; then
+        CONTAINERS=$(docker ps --format '{{.Names}}' --filter label=docker-backup-pbs=true)
+    else
+        CONTAINERS=$(docker ps --format '{{.Names}}')
+    fi    
+
     # Pour chaque conteneur, récupérer la liste des volumes attachés et lancer un nouveau conteneur pour chaque volume
     for CONTAINER_NAME in $CONTAINERS; do
         

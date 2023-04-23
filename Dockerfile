@@ -1,6 +1,7 @@
 FROM debian:bullseye-slim
 
-ENV IMAGE_NAME="registry.zeppelinlg.com/zeppelinlg/docker-backup-pbs:latest"
+ARG IMAGE_NAME="docker-backup-pbs"
+ENV IMAGE_NAME=${IMAGE_NAME}
 
 RUN apt-get update && apt-get install -y wget apt-transport-https ca-certificates curl gnupg lsb-release && rm -rf /var/lib/apt/lists/*
 

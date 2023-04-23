@@ -80,6 +80,7 @@ Cette commande exécutera automatiquement une sauvegarde quotidienne à l'heure 
 - `PBS_PASSWORD` : le mot de passe pour se connecter au serveur Proxmox Backup Server
 - `PBS_DATASTORE` : le nom du datastore sur le serveur Proxmox Backup Server
 - `PBS_NAMESPACE` : le namespace pour stocker les sauvegardes sur le serveur Proxmox Backup Server
+- `LABEL_ONLY` : si défini sur `true`, le script de sauvegarde ne sauvegardera que les conteneurs avec l'étiquette `docker-backup-pbs=true`
 
 
 ## Exemple avec docker-compose.yml
