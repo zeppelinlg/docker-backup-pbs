@@ -1,91 +1,91 @@
 # README
 
-Ce projet fournit un Dockerfile et un script de sauvegarde pour effectuer des sauvegardes de conteneurs Docker avec Proxmox Backup Server.
+This project provides a Dockerfile and a backup script to perform Docker container backups with Proxmox Backup Server.
 
-Le Dockerfile contient l'installation de Proxmox Backup Client et Docker CLI, ainsi que la configuration de l'environnement pour le script de sauvegarde.
+The Dockerfile contains the installation of Proxmox Backup Client and Docker CLI, as well as the environment configuration for the backup script.
 
-Le script de sauvegarde permet de sauvegarder tous les conteneurs en cours d'exécution sur la machine hôte. Il utilise Proxmox Backup Client pour effectuer la sauvegarde et stocke les sauvegardes sur le serveur de sauvegarde Proxmox.
+The backup script allows for backing up all running containers on the host machine. It uses Proxmox Backup Client to perform the backup and stores the backups on the Proxmox backup server.
 
-## Utilisation
+## Usage
 
-Pour utiliser ce projet, vous devez d'abord construire l'image Docker à l'aide du Dockerfile fourni :
+To use this project, you first need to build the Docker image using the provided Dockerfile:
 
 ```bash
 docker build -t docker-backup-pbs .
 ```
 
-Ensuite, vous pouvez exécuter le script de sauvegarde en utilisant la commande suivante :
+Then, you can run the backup script using the following command:
 
 ```bash
 docker run -it --rm \
-  -e PBS_SERVER=<serveur_proxmox_backup> \
-  -e PBS_USER=<nom_utilisateur_proxmox_backup> \
-  -e PBS_PASSWORD=<mot_de_passe_proxmox_backup> \
-  -e PBS_DATASTORE=<stockage_proxmox_backup> \
-  -e PBS_NAMESPACE=<namespace_proxmox_backup> \
+  -e PBS_SERVER=<proxmox_backup_server> \
+  -e PBS_USER=<proxmox_backup_username> \
+  -e PBS_PASSWORD=<proxmox_backup_password> \
+  -e PBS_DATASTORE=<proxmox_backup_datastore> \
+  -e PBS_NAMESPACE=<proxmox_backup_namespace> \
   -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
   docker-backup-pbs backup
 ```
 
-Vous devez remplacer les variables d'environnement par les valeurs appropriées pour votre environnement.
+You need to replace the environment variables with the appropriate values for your environment.
 
-Il est également possible de sauvegarder un conteneur spécifique en utilisant la commande suivante :
-
-```bash
-docker run -it --rm \
-  -e PBS_SERVER=<serveur_proxmox_backup> \
-  -e PBS_USER=<nom_utilisateur_proxmox_backup> \
-  -e PBS_PASSWORD=<mot_de_passe_proxmox_backup> \
-  -e PBS_DATASTORE=<stockage_proxmox_backup> \
-  -e PBS_NAMESPACE=<namespace_proxmox_backup> \
-  -e IMAGE_NAME=docker-backup-pbs \
-  -v /var/lib/docker.sock:/var/lib/docker.sock \
-   docker-backup-pbs backupContainer <nom_conteneur>
-```
-
-Pour restaurer un conteneur à partir d'une sauvegarde, vous pouvez utiliser la commande suivante :
+It is also possible to backup a specific container using the following command:
 
 ```bash
 docker run -it --rm \
-  -e PBS_SERVER=<serveur_proxmox_backup> \
-  -e PBS_USER=<nom_utilisateur_proxmox_backup> \
-  -e PBS_PASSWORD=<mot_de_passe_proxmox_backup> \
-  -e PBS_DATASTORE=<stockage_proxmox_backup> \
-  -e PBS_NAMESPACE=<namespace_proxmox_backup> \
+  -e PBS_SERVER=<proxmox_backup_server> \
+  -e PBS_USER=<proxmox_backup_username> \
+  -e PBS_PASSWORD=<proxmox_backup_password> \
+  -e PBS_DATASTORE=<proxmox_backup_datastore> \
+  -e PBS_NAMESPACE=<proxmox_backup_namespace> \
   -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
-  docker-backup-pbs restoreContainer <nom_conteneur> <nom_sauvegarde>
+   docker-backup-pbs backupContainer <container_name>
 ```
 
-Enfin, vous pouvez planifier des sauvegardes automatiques à l'aide de la commande suivante :
+To restore a container from a backup, you can use the following command:
+
+```bash
+docker run -it --rm \
+  -e PBS_SERVER=<proxmox_backup_server> \
+  -e PBS_USER=<proxmox_backup_username> \
+  -e PBS_PASSWORD=<proxmox_backup_password> \
+  -e PBS_DATASTORE=<proxmox_backup_datastore> \
+  -e PBS_NAMESPACE=<proxmox_backup_namespace> \
+  -e IMAGE_NAME=docker-backup-pbs \
+  -v /var/lib/docker.sock:/var/lib/docker.sock \
+  docker-backup-pbs restoreContainer <container_name> <backup_name>
+```
+
+Finally, you can schedule automatic backups using the following command:
 
 ```bash
 docker run -d \
-  -e PBS_SERVER=<serveur_proxmox_backup> \
-  -e PBS_USER=<nom_utilisateur_proxmox_backup> \
-  -e PBS_PASSWORD=<mot_de_passe_proxmox_backup> \
-  -e PBS_DATASTORE=<stockage_proxmox_backup> \
-  -e PBS_NAMESPACE=<namespace_proxmox_backup> \
+  -e PBS_SERVER=<proxmox_backup_server> \
+  -e PBS_USER=<proxmox_backup_username> \
+  -e PBS_PASSWORD=<proxmox_backup_password> \
+  -e PBS_DATASTORE=<proxmox_backup_datastore> \
+  -e PBS_NAMESPACE=<proxmox_backup_namespace> \
   -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
-  docker-backup-pbs autoBackupDaily <heure>
+  docker-backup-pbs autoBackupDaily <time>
 ```
 
-Cette commande exécutera automatiquement une sauvegarde quotidienne à l'heure spécifiée.
-## Variables d'environnements
+This command will automatically run a daily backup at the specified time.
 
-- `PBS_SERVER` : l'adresse IP ou le nom d'hôte du serveur Proxmox Backup Server
-- `PBS_USER` : le nom d'utilisateur pour se connecter au serveur Proxmox Backup Server
-- `PBS_PASSWORD` : le mot de passe pour se connecter au serveur Proxmox Backup Server
-- `PBS_DATASTORE` : le nom du datastore sur le serveur Proxmox Backup Server
-- `PBS_NAMESPACE` : le namespace pour stocker les sauvegardes sur le serveur Proxmox Backup Server
-- `LABEL_ONLY` : si défini sur `true`, le script de sauvegarde ne sauvegardera que les conteneurs avec l'étiquette `docker-backup-pbs=true`
+## Environment Variables
 
+- `PBS_SERVER`: the IP address or hostname of the Proxmox Backup Server
+- `PBS_USER`: the username to connect to the Proxmox Backup Server
+- `PBS_PASSWORD`: the password to connect to the Proxmox Backup Server
+- `PBS_DATASTORE`: the name of the datastore on the Proxmox Backup Server
+- `PBS_NAMESPACE`: the namespace to store the backups on the Proxmox Backup Server
+- `LABEL_ONLY`: if set to `true`, the backup script will only backup containers with the label `docker-backup-pbs=true`
 
-## Exemple avec docker-compose.yml
+## Example with docker-compose.yml
 
-Voici un exemple de fichier docker-compose.yml pour exécuter automatiquement des sauvegardes quotidiennes à 2h du matin :
+Here is an example docker-compose.yml file to automatically run daily backups at 2am:
 
 ```yml
 version: '3'
@@ -94,11 +94,11 @@ services:
   backup:
     image: docker-backup-pbs
     environment:
-      - PBS_SERVER=<serveur_proxmox_backup>
-      - PBS_USER=<nom_utilisateur_proxmox_backup>
-      - PBS_PASSWORD=<mot_de_passe_proxmox_backup>
-      - PBS_DATASTORE=<stockage_proxmox_backup>
-      - PBS_NAMESPACE=<namespace_proxmox_backup>
+      - PBS_SERVER=<proxmox_backup_server>
+      - PBS_USER=<proxmox_backup_username>
+      - PBS_PASSWORD=<proxmox_backup_password>
+      - PBS_DATASTORE=<proxmox_backup_datastore>
+      - PBS_NAMESPACE=<proxmox_backup_namespace>
       - IMAGE_NAME=docker-backup-pbs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -107,4 +107,4 @@ services:
 
 ## Conclusion
 
-Ce projet fournit une solution simple pour effectuer des sauvegardes de conteneurs Docker avec Proxmox Backup Server. Il est facile à utiliser et peut être intégré dans des workflows existants à l'aide de Docker Compose.
+This project provides a simple solution for performing Docker container backups with Proxmox Backup Server. It is easy to use and can be integrated into existing workflows using Docker Compose.

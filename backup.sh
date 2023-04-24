@@ -1,62 +1,62 @@
 #!/bin/bash
-# Vérification des variables d'environnement PBS_SERVER, PBS_USER, PBS_PASSWORD, PBS_DATASTORE et PBS_NAMESPACE
+
+# Check environment variables PBS_SERVER, PBS_USER, PBS_PASSWORD, PBS_DATASTORE and PBS_NAMESPACE
 if [ -z "$PBS_SERVER" ]; then
-    echo "La variable d'environnement PBS_SERVER n'est pas définie"
+    echo "The environment variable PBS_SERVER is not defined"
     exit 1
 fi
 if [ -z "$PBS_USER" ]; then
-    echo "La variable d'environnement PBS_USER n'est pas définie"
+    echo "The environment variable PBS_USER is not defined"
     exit 1
 fi
 if [ -z "$PBS_PASSWORD" ]; then
-    echo "La variable d'environnement PBS_PASSWORD n'est pas définie"
+    echo "The environment variable PBS_PASSWORD is not defined"
     exit 1
 fi
 if [ -z "$PBS_DATASTORE" ]; then
-    echo "La variable d'environnement PBS_DATASTORE n'est pas définie"
+    echo "The environment variable PBS_DATASTORE is not defined"
     exit 1
 fi
 if [ -z "$PBS_NAMESPACE" ]; then
-    echo "La variable d'environnement PBS_NAMESPACE n'est pas définie"
+    echo "The environment variable PBS_NAMESPACE is not defined"
     exit 1
 fi
+
+# Set default value for LABEL_ONLY if not defined
 if [ -z "$LABEL_ONLY" ]; then
     LABEL_ONLY="false"
 fi
 
-
-
-## Fonction de backup des volumes de toutes les instances en cours d'exécution
+## Function to backup volumes of all running containers
 function backup() {
-    # Récupération de la liste de tous les conteneurs en cours d'exécution
+    # Get list of all running containers
     if [ "$LABEL_ONLY" == "true" ]; then
         CONTAINERS=$(docker ps --format '{{.Names}}' --filter label=docker-backup-pbs=true)
     else
         CONTAINERS=$(docker ps --format '{{.Names}}')
-    fi    
+    fi
 
-    # Pour chaque conteneur, récupérer la liste des volumes attachés et lancer un nouveau conteneur pour chaque volume
+    # For each container, get list of attached volumes and launch a new container for each volume
     for CONTAINER_NAME in $CONTAINERS; do
-        
-        # On exclut le conteneur de backup en fonction du nom de l'image
+
+        # Exclude backup container based on image name
         CURRENT_IMAGE_NAME=$(docker inspect --format='{{.Config.Image}}' "$CONTAINER_NAME" | cut -d ":" -f 1)
         if [[ "$IMAGE_NAME" == "$CURRENT_IMAGE_NAME" ]]; then
             continue
         fi
-        echo "$IMAGE_NAME != $CURRENT_IMAGE_NAME"
-        
+
         CONTAINER_ID=$(docker ps -aqf "name=$CONTAINER_NAME")
         VOLUMES=("$(docker inspect --format='{{range .Mounts}}{{.Name}} {{end}}' "$CONTAINER_ID" | sed -E 's/ +$//g' | sed -E 's/^ +//g')")
         if [ -z "${VOLUMES[*]}" ]; then
             continue
         fi
-        
+
         VOLUMEARGS=""
         for VOLUME in "${VOLUMES[@]}"; do
             VOLUMEARGS="$VOLUMEARGS -v $VOLUME:/data/$VOLUME"
         done
-        
-        
+
+        # Launch new container to backup each volume
         docker run \
         --rm \
         ${VOLUMEARGS} \
@@ -73,11 +73,12 @@ function backup() {
     done
 }
 
+## Function to restore a container's volume with Proxmox Backup Client
 function restoreContainer() {
-    # Récupération du nom du conteneur
+    # Get container name
     CONTAINER_NAME=$1
-    
-    # Récupération du nom du snapshot
+
+    # Get snapshot name
     SNAPSHOT_NAME=$2
 
     export PBS_REPOSITORY="${PBS_USER}@${PBS_SERVER}:${PBS_DATASTORE}"
@@ -87,61 +88,60 @@ function restoreContainer() {
         proxmox-backup-client list --ns "$PBS_NAMESPACE"
         exit 1
     fi
-    
-    # Récupération du nom des volumes
+
+    # Get volume names
     CONTAINER_ID=$(docker ps -aqf "name=$CONTAINER_NAME")
     VOLUMES=("$(docker inspect --format='{{range .Mounts}}{{.Name}} {{end}}' "$CONTAINER_ID" | sed -E 's/ +$//g' | sed -E 's/^ +//g')")
-    
-    
-    # Pause du conteneur pour éviter les modifications pendant le backup
-    printf "Pause du conteneur %s\n" "$CONTAINER_NAME"
+
+    # Pause container to avoid modifications during backup
+    printf "Pausing container %s\n" "$CONTAINER_NAME"
     docker pause "$CONTAINER_NAME"
-    
+
     for VOLUME in "${VOLUMES[@]}"; do
-        printf "Restauration du volume %s\n" "$VOLUME"
+        printf "Restoring volume %s\n" "$VOLUME"
         proxmox-backup-client restore  --ns "$PBS_NAMESPACE" "$SNAPSHOT_NAME" "$VOLUME.pxar" "/data/$VOLUME"
     done
-    
-    # Reprise du conteneur
-    printf "Reprise du conteneur %s\n" "$CONTAINER_NAME"
+
+    # Unpause container
+    printf "Resuming container %s\n" "$CONTAINER_NAME"
     docker unpause "$CONTAINER_NAME"
 }
 
-
-## Fonction de backup d'un volume avec proxmox backup client
+## Function to backup a container's volume with Proxmox Backup Client
 function backupContainer() {
-    # Récupération du nom du conteneur
+    # Get container name
     CONTAINER_NAME=$1
     shift
-    
-    # Récupération du nom des volumes
+
+    # Get volume names
     VOLUMES=("$@")
-    
+
     export PBS_REPOSITORY="${PBS_USER}@${PBS_SERVER}:${PBS_DATASTORE}"
-    
+
     VOLUMESARGS=""
     for VOLUME in "${VOLUMES[@]}"; do
         VOLUMESARGS="$VOLUMESARGS $VOLUME.pxar:/data/$VOLUME"
     done
-    
-    # Pause du conteneur pour éviter les modifications pendant le backup
-    printf "Pause du conteneur %s\n" "$CONTAINER_NAME"
+
+    # Pause container to avoid modifications during backup
+    printf "Pausing container %s\n" "$CONTAINER_NAME"
     docker pause "$CONTAINER_NAME"
-    
-    # Backup avec proxmox backup client
-    printf "Backup du conteneur %s\n" "$CONTAINER_NAME"
+
+    # Backup with Proxmox Backup Client
+    printf "Backing up container %s\n" "$CONTAINER_NAME"
     proxmox-backup-client backup $VOLUMESARGS --ns "$PBS_NAMESPACE" --backup-id "${CONTAINER_NAME}"
-    
-    # Reprise du conteneur
-    printf "Reprise du conteneur %s\n" "$CONTAINER_NAME"
+
+    # Unpause container
+    printf "Resuming container %s\n" "$CONTAINER_NAME"
     docker unpause "$CONTAINER_NAME"
 }
 
+## Function to automatically backup volumes daily at a specified time
 function autoBackupDaily() {
     TIME=${1:-"00:00"}
     while true; do
         backup
-        ## Attend jusqu'a l'heure choisie
+        # Wait until specified time
         NOW=$(date +%s)
         NEXT=$(date -d "tomorrow $TIME" +%s)
         SLEEP=$((NEXT-NOW))
@@ -149,6 +149,7 @@ function autoBackupDaily() {
     done
 }
 
+# Check first argument and call corresponding function
 if [ "$1" == "backup" ]; then
     backup
     elif [ "$1" == "backupContainer" ]; then
@@ -161,3 +162,4 @@ else
     echo "Usage: $0 backup|backupContainer|restoreContainer"
     exit 1
 fi
+
