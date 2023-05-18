@@ -183,7 +183,7 @@ function restoreContainer() {
             continue
         fi
         printf "Restoring volume %s\n" "$VOLUME"
-        proxmox-backup-client restore  "${argsNS[@]}" "$SNAPSHOT_NAME" "$VOLUME_NAME.pxar" "$VOLUME"
+        proxmox-backup-client restore --overwrite true "${argsNS[@]}" "$SNAPSHOT_NAME" "$VOLUME_NAME.pxar" "$VOLUME"
     done
     
     # Start container
