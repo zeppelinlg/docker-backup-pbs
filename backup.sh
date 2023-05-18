@@ -182,6 +182,8 @@ function restoreContainer() {
         if [ "$VOLUME" == "/var/run/docker.sock" ] || [ "$VOLUME" == "/tmp" ]; then
             continue
         fi
+        printf "Deleting all files in %s\n" "$VOLUME"
+        rm -rf "${VOLUME:?}/"*
         printf "Restoring volume %s\n" "$VOLUME"
         proxmox-backup-client restore --overwrite true "${argsNS[@]}" "$SNAPSHOT_NAME" "$VOLUME_NAME.pxar" "$VOLUME"
     done
