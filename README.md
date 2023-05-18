@@ -14,6 +14,12 @@ To use this project, you first need to build the Docker image using the provided
 docker build -t docker-backup-pbs .
 ```
 
+If you want change the image name, you have to pass IMAGE_NAME as build-arg
+
+```bash
+docker build -t other-name --build-arg IMAGE_NAME=other-name .
+```
+
 Then, you can run the backup script using the following command:
 
 ```bash
@@ -23,26 +29,14 @@ docker run -it --rm \
   -e PBS_PASSWORD=<proxmox_backup_password> \
   -e PBS_DATASTORE=<proxmox_backup_datastore> \
   -e PBS_NAMESPACE=<proxmox_backup_namespace> \
-  -e IMAGE_NAME=docker-backup-pbs \
+  -e STORAGE_TYPE=<storage_type> # optional default is 'volume' \
+  -e LABEL_ONLY=<label_only> # optional default is 'false' \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
+  -v /:/host:ro # optional for bind mounts \  
   docker-backup-pbs backup
 ```
 
 You need to replace the environment variables with the appropriate values for your environment.
-
-It is also possible to backup a specific container using the following command:
-
-```bash
-docker run -it --rm \
-  -e PBS_SERVER=<proxmox_backup_server> \
-  -e PBS_USER=<proxmox_backup_username> \
-  -e PBS_PASSWORD=<proxmox_backup_password> \
-  -e PBS_DATASTORE=<proxmox_backup_datastore> \
-  -e PBS_NAMESPACE=<proxmox_backup_namespace> \
-  -e IMAGE_NAME=docker-backup-pbs \
-  -v /var/lib/docker.sock:/var/lib/docker.sock \
-   docker-backup-pbs backupContainer <container_name>
-```
 
 To restore a container from a backup, you can use the following command:
 
@@ -53,9 +47,9 @@ docker run -it --rm \
   -e PBS_PASSWORD=<proxmox_backup_password> \
   -e PBS_DATASTORE=<proxmox_backup_datastore> \
   -e PBS_NAMESPACE=<proxmox_backup_namespace> \
-  -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
-  docker-backup-pbs restoreContainer <container_name> <backup_name>
+  -v /:/host # optional for bind mounts \  
+  docker-backup-pbs restoreSnapshot <container_name> <backup_name>
 ```
 
 Finally, you can schedule automatic backups using the following command:
@@ -67,7 +61,6 @@ docker run -d \
   -e PBS_PASSWORD=<proxmox_backup_password> \
   -e PBS_DATASTORE=<proxmox_backup_datastore> \
   -e PBS_NAMESPACE=<proxmox_backup_namespace> \
-  -e IMAGE_NAME=docker-backup-pbs \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
   docker-backup-pbs autoBackupDaily <time>
 ```
@@ -82,6 +75,7 @@ This command will automatically run a daily backup at the specified time.
 - `PBS_DATASTORE`: the name of the datastore on the Proxmox Backup Server
 - `PBS_NAMESPACE`: the namespace to store the backups on the Proxmox Backup Server
 - `LABEL_ONLY`: if set to `true`, the backup script will only backup containers with the label `docker-backup-pbs=true`
+- `STORAGE_TYPE`: Take 'all', 'volume' or 'bind' as value. If set to 'all', all volumes and bind mounts will be backed up. If set to 'volume', only volumes will be backed up. If set to 'bind', only bind mounts will be backed up. Default is 'volume'.
 
 ## Example with docker-compose.yml
 
@@ -99,7 +93,6 @@ services:
       - PBS_PASSWORD=<proxmox_backup_password>
       - PBS_DATASTORE=<proxmox_backup_datastore>
       - PBS_NAMESPACE=<proxmox_backup_namespace>
-      - IMAGE_NAME=docker-backup-pbs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: autoBackupDaily "02:00"
