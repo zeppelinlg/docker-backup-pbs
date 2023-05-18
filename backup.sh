@@ -62,7 +62,7 @@ function backup() {
             if [ "$(echo "$VOLUME" | cut -d "|" -f 1)" == "bind" ] && { [ "$STORAGE_TYPE" == "bind" ] || [ "$STORAGE_TYPE" == "all" ]; }; then
                 VOLUME_SOURCE="$(echo "$VOLUME" | cut -d "|" -f 2)"
                 VOLUME_NAME="$(echo "$VOLUME_SOURCE" | sed -E 's/\/+/_/g')"
-                VOLUMEARGS+=("-v /host$VOLUME_SOURCE:/data/$VOLUME_NAME")
+                VOLUMEARGS+=("-v $VOLUME_SOURCE:/data/$VOLUME_NAME")
             fi
         done
         
@@ -124,7 +124,7 @@ function restoreSnapshot() {
         if [ "$(echo "$VOLUME" | cut -d "|" -f 1)" == "bind" ] && { [ "$STORAGE_TYPE" == "bind" ] || [ "$STORAGE_TYPE" == "all" ]; }; then
             VOLUME_SOURCE="$(echo "$VOLUME" | cut -d "|" -f 2)"
             VOLUME_NAME="$(echo "$VOLUME_SOURCE" | sed -E 's/\/+/_/g')"
-            VOLUMEARGS+=("-v /host$VOLUME_SOURCE:/data/$VOLUME_NAME")
+            VOLUMEARGS+=("-v $VOLUME_SOURCE:/data/$VOLUME_NAME")
         fi
     done
     

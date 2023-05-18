@@ -32,7 +32,6 @@ docker run -it --rm \
   -e STORAGE_TYPE=<storage_type> # optional default is 'volume' \
   -e LABEL_ONLY=<label_only> # optional default is 'false' \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
-  -v /:/host:ro # optional for bind mounts \  
   docker-backup-pbs backup
 ```
 
@@ -48,7 +47,6 @@ docker run -it --rm \
   -e PBS_DATASTORE=<proxmox_backup_datastore> \
   -e PBS_NAMESPACE=<proxmox_backup_namespace> \
   -v /var/lib/docker.sock:/var/lib/docker.sock \
-  -v /:/host # optional for bind mounts \  
   docker-backup-pbs restoreSnapshot <container_name> <backup_name>
 ```
 
