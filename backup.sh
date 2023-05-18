@@ -163,15 +163,6 @@ function restoreContainer() {
     # Get volume destination from myself
     mapfile -t VOLUMES < <(docker inspect --format='{{range .Mounts}}{{.Destination}} {{end}}' "restore-$CONTAINER_NAME" | sed -E 's/ +$//g' | sed -E 's/^ +//g' | sed -E 's/ /\n/g')
     
-    VOLUMEARGS=()
-    for VOLUME in "${VOLUMES[@]}"; do
-        VOLUME_NAME="$(echo "$VOLUME" | sed -E 's/\/+/_/g')"
-        if [ "$VOLUME" == "/var/run/docker.sock" ] || [ "$VOLUME" == "/tmp" ]; then
-            continue
-        fi
-        VOLUMEARGS+=("$VOLUME_NAME.pxar:$VOLUME")
-    done
-    
     local argsNS=()
     if [ -n "$PBS_NAMESPACE" ]; then
         argsNS=(--ns "${PBS_NAMESPACE}")
@@ -183,11 +174,15 @@ function restoreContainer() {
     docker stop "$CONTAINER_NAME"
     
     for VOLUME in "${VOLUMES[@]}"; do
+        # Skip volume if the path does not begin with /data
+        if [[ "$VOLUME" != /data* ]]; then
+            continue
+        fi
+        VOLUME_NAME="$(echo "$VOLUME" | sed -E 's/^\/data\///g')"
         if [ "$VOLUME" == "/var/run/docker.sock" ] || [ "$VOLUME" == "/tmp" ]; then
             continue
         fi
         printf "Restoring volume %s\n" "$VOLUME"
-        VOLUME_NAME="$(echo "$VOLUME" | sed -E 's/\/+/_/g')"
         proxmox-backup-client restore  "${argsNS[@]}" "$SNAPSHOT_NAME" "$VOLUME_NAME.pxar" "$VOLUME"
     done
     
@@ -208,7 +203,11 @@ function backupContainer() {
     
     VOLUMEARGS=()
     for VOLUME in "${VOLUMES[@]}"; do
-        VOLUME_NAME="$(echo "$VOLUME" | sed -E 's/\/+/_/g')"
+        # Skip volume if the path does not begin with /data
+        if [[ "$VOLUME" != /data* ]]; then
+            continue
+        fi
+        VOLUME_NAME="$(echo "$VOLUME" | sed -E 's/^\/data\///g')"
         if [ "$VOLUME" == "/var/run/docker.sock" ] || [ "$VOLUME" == "/tmp" ]; then
             continue
         fi
